@@ -1,0 +1,290 @@
+<html
+  style="height: 100%; width: 100%;"
+>
+  <head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
+    <title>Wear A Fucking Mask</title>
+  </head>
+  <body
+    style="height: 100%; width: 100%; background-color: #342C2C;"
+  >
+    <div
+      id="field"
+      style="height: 100%; width: 100%;"
+    >
+      <img
+        id="me"
+        src="./me.svg"
+        style="width: 50px; height: 50px; position: fixed;"
+        alt="no mask man"
+      >
+    </div>
+    <div style="position: fixed; height: 240; width: 240; right: -30px; bottom: 0px;">
+      <div class="top" style="position: absolute; top: 0px; right: 60px;">
+        <span class="material-icons" style="font-size: 150px; color: white;">arrow_drop_up</span>
+        <span style="position: absolute; top: 66px; right: 72px; font-weight: bold; font-size: 18px;">i</span>
+      </div>
+      <div class="right" style="position: absolute; top: 60px; right: 0px;">
+        <span class="material-icons" style="font-size: 150px; color: white;">arrow_right</span>
+        <span style="position: absolute; top: 66px; right: 72px; font-weight: bold; font-size: 18px;">l</span>
+      </div>
+      <div class="bottom" style="position: absolute; top: 120px; right: 60px;">
+        <span class="material-icons" style="font-size: 150px; color: white;">arrow_drop_down</span>
+        <span style="position: absolute; top: 66px; right: 70px; font-weight: bold; font-size: 18px;">k</span>
+      </div>
+      <div class="left" style="position: absolute; top: 60px; right: 120px;">
+        <span class="material-icons" style="font-size: 150px; color: white;">arrow_left</span>
+        <span style="position: absolute; top: 66px; right: 72px; font-weight: bold; font-size: 18px;">j</span>
+      </div>
+    </div>
+    <script>
+      const FIELD_ELEM = document.getElementById('field');
+
+      class Field {
+        static instance = null;
+        
+        static getInstance(me) {
+          if (Field.instance === null) {
+            Field.instance = new Field(me);
+          }
+          return Field.instance;
+        }
+        
+        MY_TRAVEL_UNIT = 10;
+        STRANGER_TRAVEL_UNIT = 1;
+        CLOCK_INTERVAL = 20;
+        on = true;
+
+        constructor (me) {
+          this.me = me;
+          this.strangerCollection = new StrangerCollection();
+
+          this.introduceStranger();
+
+          this.start();
+        }
+
+        start() {
+          setInterval(() => {
+            if (this.on) {
+              this.periodicTask();
+            }
+          }, this.CLOCK_INTERVAL);
+
+          setInterval(() => {
+            if (this.on) {
+              this.introduceStranger();
+            }
+          }, this.CLOCK_INTERVAL * 50);
+        }
+
+        periodicTask() {
+          this.moveStrangers();
+          if (this.ifForgotToMaskSomeone()) {
+            alert('Ohhh shit! Someone got away without a mask. Reload and try harder.');
+            this.on = false;
+          }
+        }
+
+        introduceStranger() {
+          const stranger = new StrangerBuilder().build();
+          FIELD_ELEM.appendChild(stranger.elem);
+          this.strangerCollection.append(stranger);
+        }
+
+        moveMe(direction) {
+          switch(direction) {
+            case 't': this.me.position.moveVerticallyBy(this.MY_TRAVEL_UNIT); break;
+            case 'r': this.me.position.moveHorizontallyBy(this.MY_TRAVEL_UNIT); break;
+            case 'b': this.me.position.moveVerticallyBy(-this.MY_TRAVEL_UNIT); break;
+            case 'l': this.me.position.moveHorizontallyBy(-this.MY_TRAVEL_UNIT); break;
+          }
+
+          this.maskStrangersIHit();
+        }
+
+        moveStrangers() {
+          this.strangerCollection.getAll().forEach(s => {
+            s.position.moveVerticallyBy(-this.STRANGER_TRAVEL_UNIT);
+            this.maskStrangersIHit();
+          })
+        }
+
+        maskStrangersIHit() {
+          this.strangersIHit().forEach(s => s.wearMask());
+        }
+
+        /**
+         * Return strangers that I came in contact with
+         * @return Stranger[] 
+         */
+        strangersIHit() {
+          return this.strangerCollection.getAll().filter(s => s.position.calcDistanceFrom(this.me.position) < 50);
+        }
+        
+        ifForgotToMaskSomeone() {
+          return this.strangerCollection.getAll().some(s => s.position.isOutOfScreen() && !s.wearingMask);
+        }
+      }
+
+      class Position {
+        static createSomewhereTop(owner) {
+          return new Position(owner, Math.random()*1000000 % window.innerWidth, window.innerHeight);
+        }
+
+        static createCenter(owner) {
+          return new Position(owner, Math.floor(window.innerWidth / 2), Math.floor(window.innerHeight / 2));
+        }
+
+        constructor(owner, x = 0, y = 0) {
+          this.owner = owner;
+          this.x = x;
+          this.y = y;
+        }
+
+        calcDistanceFrom(anotherPosition) {
+          return Math.floor(Math.sqrt((anotherPosition.x - this.x)**2 + (anotherPosition.y - this.y)**2));
+        }
+
+        isOutOfScreen() {
+          return this.y < 0;
+        }
+
+        move() {
+          this.moveOwner();
+        }
+
+        moveTo(x, y) {
+          this.x = x;
+          this.y = y;
+          this.moveOwner();
+        }
+
+        moveHorizontallyBy(xDiff) {
+          this.x += xDiff;
+          this.moveOwner();
+        }
+
+        moveVerticallyBy(yDiff) {
+          this.y += yDiff;
+          this.moveOwner();
+        }
+
+        /* Private */
+        moveOwner() {
+          if (this.owner.elem == null) {
+            console.error(`this.owner.elem is null`);
+            return;
+          }
+          this.owner.elem.style.visibility = 'visible';
+          this.owner.elem.style.left = this.x;
+          this.owner.elem.style.bottom = this.y;
+        }
+      }
+
+      class Me {
+        static instance = null;
+
+        static getInstance() {
+          if (Me.instance === null) {
+            Me.instance = new Me();
+          }
+          return Me.instance;
+        }
+
+        position = Position.createCenter(this);
+
+        constructor() {
+          this.elem = document.getElementById('me');
+
+          if (!this.elem) {
+            console.error('Me Element not found');
+            return;
+          }
+
+          this.position.move(); // move to the initial position
+        }
+      }
+
+      class StrangerBuilder {
+        buildElem() {
+          const img = document.createElement("img");
+          img.src = Stranger.NO_MASK_IMG_PATH;
+          img.style.width = '50px';
+          img.style.height = '50px';
+          img.style.position = 'fixed';
+          img.style.visibility = 'hidden';
+          return img;
+        }
+
+        build() {
+          return new Stranger(this.buildElem());
+        }
+      }
+
+      class StrangerCollection {
+        static instance = null;
+
+        static getInstance() {
+          if (StrangerCollection.instance === null) {
+            StrangerCollection.instance = new StrangerCollection();
+          }
+          return StrangerCollection.instance;
+        }
+
+        strangers = [];
+
+        getAll() {
+          return this.strangers;
+        }
+
+        append(stranger) {
+          this.strangers.push(stranger);
+        }
+      }
+
+      class Stranger {
+        static number = 0;
+        static NO_MASK_IMG_PATH = './no-mask.svg';
+        static MASKED_IMG_PATH = './masked.svg';
+
+        wearingMask = false;
+        
+        constructor(elem) {
+          this.elem = elem;
+          this.position = Position.createSomewhereTop(this);
+        }
+
+        wearMask() {
+          this.elem.src = Stranger.MASKED_IMG_PATH;
+          this.wearingMask = true;
+        }
+      }
+      
+      function init() {
+        const me = Me.getInstance();
+
+        new StrangerBuilder().build();
+        
+        const field = Field.getInstance(me);
+
+        const TOP_KEY_CODE = 73;
+        const RIGHT_KEY_CODE = 76;
+        const BOTTOM_KEY_CODE = 75;
+        const LEFT_KEY_CODE = 74;
+        document.addEventListener('keydown', function(event) {
+          switch(event.keyCode) {
+            case TOP_KEY_CODE: return field.moveMe('t');
+            case RIGHT_KEY_CODE: return field.moveMe('r');
+            case BOTTOM_KEY_CODE: return field.moveMe('b');
+            case LEFT_KEY_CODE: return field.moveMe('l');
+          }
+        });
+      }
+
+      init();
+    </script>
+  </body>
+</html>
