@@ -331,16 +331,13 @@
       }
       
       function init() {
-        const me = Me.getInstance();
-
-        new StrangerBuilder().build();
-        
-        const field = Field.getInstance(me);
+        const field = Field.getInstance(Me.getInstance());
 
         const TOP_KEY_CODE = 73;
         const RIGHT_KEY_CODE = 76;
         const BOTTOM_KEY_CODE = 75;
         const LEFT_KEY_CODE = 74;
+
         document.addEventListener('keydown', function(event) {
           switch(event.keyCode) {
             case TOP_KEY_CODE: return field.moveMe('t');
